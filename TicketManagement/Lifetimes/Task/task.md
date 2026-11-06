@@ -1,2 +1,2 @@
-This task  is to implement the `IntoIterator` trait for `&TicketStore`.
-Follow the `TODO` comments in the code.
+У цьому завданні потрібно реалізувати trait `IntoIterator` для `&TicketStore` (trait — набір методів, які тип може реалізувати; аналог інтерфейсу).
+Виконайте вказівки з коментарів `TODO` у коді.

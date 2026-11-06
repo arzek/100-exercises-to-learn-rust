@@ -1,18 +1,18 @@
-## Async-aware primitives
+## Примітиви з підтримкою async
 
-If you browse `tokio`'s documentation, you'll notice that it provides a lot of types
-that "mirror" the ones in the standard library, but with an asynchronous twist:
-locks, channels, timers, and more.
+Переглядаючи документацію `tokio`, ви помітите, що він надає багато типів,
+які «віддзеркалюють» типи зі стандартної бібліотеки, але в асинхронному варіанті:
+locks (блокування), канали (channels), таймери тощо.
 
-When working in an asynchronous context, you should prefer these asynchronous alternatives
-to their synchronous counterparts.
+В асинхронному контексті варто надавати перевагу цим асинхронним альтернативам,
+а не їхнім синхронним відповідникам.
 
-To understand why, let's take a look at `Mutex`, the mutually exclusive lock we explored
-in the previous chapter.
+Щоб зрозуміти чому, погляньмо на `Mutex` — lock із взаємним виключенням, який ми
+розглядали в попередньому розділі.
 
-## Case study: `Mutex`
+## Розбір випадку: `Mutex`
 
-Let's look at a simple example:
+Розгляньмо простий приклад:
 
 ```rust
 use std::sync::{Arc, Mutex};
@@ -21,25 +21,25 @@ async fn run(m: Arc<Mutex<Vec<u64>>>) {
     let guard = m.lock().unwrap();
     http_call(&guard).await;
     println!("Sent {:?} to the server", &guard);
-    // `guard` is dropped here
+    // Тут `guard` знищується (drop)
 }
 
-/// Use `v` as the body of an HTTP call.
+/// Використовує `v` як тіло HTTP-запиту.
 async fn http_call(v: &[u64]) {
   // [...]
 }
 ```
 
-### `std::sync::MutexGuard` and yield points
+### `std::sync::MutexGuard` і yield points
 
-This code will compile, but it's dangerous.
+Цей код скомпілюється, але він небезпечний.
 
-We try to acquire a lock over a `Mutex` from `std` in an asynchronous context.
-We then hold on to the resulting `MutexGuard` across a yield point (the `.await` on
-`http_call`).
+Ми намагаємося захопити lock `Mutex` із `std` в асинхронному контексті.
+Потім ми утримуємо отриманий `MutexGuard` у yield point — `.await` для
+`http_call`.
 
-Let's imagine that there are two tasks executing `run`, concurrently, on a single-threaded
-runtime. We observe the following sequence of scheduling events:
+Уявімо, що два tasks конкурентно виконують `run` в однопотоковому
+runtime. Ми спостерігаємо таку послідовність подій планування:
 
 ```text
      Task A          Task B
@@ -52,13 +52,13 @@ Yields to runtime
              Tries to acquire lock
 ```
 
-We have a deadlock. Task B will never manage to acquire the lock, because the lock
-is currently held by task A, which has yielded to the runtime before releasing the
-lock and won't be scheduled again because the runtime cannot preempt task B.
+Маємо deadlock. Task B ніколи не зможе захопити lock, бо зараз його
+утримує task A, який віддав керування (yield) runtime, не звільнивши
+lock, і його вже не буде заплановано знову, бо runtime не може витіснити task B.
 
 ### `tokio::sync::Mutex`
 
-You can solve the issue by switching to `tokio::sync::Mutex`:
+Цю проблему можна розв'язати, перейшовши на `tokio::sync::Mutex`:
 
 ```rust
 use std::sync::Arc;
@@ -68,13 +68,13 @@ async fn run(m: Arc<Mutex<Vec<u64>>>) {
     let guard = m.lock().await;
     http_call(&guard).await;
     println!("Sent {:?} to the server", &guard);
-    // `guard` is dropped here
+    // Тут `guard` знищується
 }
 ```
 
-Acquiring the lock is now an asynchronous operation, which yields back to the runtime
-if it can't make progress.\
-Going back to the previous scenario, the following would happen:
+Тепер захоплення lock — асинхронна операція, яка віддає керування runtime,
+якщо не може просунутися далі.\
+Якщо повернутися до попереднього сценарію, відбуватиметься таке:
 
 ```text
        Task A          Task B
@@ -101,29 +101,29 @@ Going back to the previous scenario, the following would happen:
                        [...]
 ```
 
-All good!
+Усе гаразд!
 
-### Multithreaded won't save you
+### Багатопотоковість вас не врятує
 
-We've used a single-threaded runtime as the execution context in our
-previous example, but the same risk persists even when using a multithreaded
-runtime.\
-The only difference is in the number of concurrent tasks required to create the deadlock:
-in a single-threaded runtime, 2 are enough; in a multithreaded runtime, we
-would need `N+1` tasks, where `N` is the number of runtime threads.
+У попередньому прикладі контекстом виконання був однопотоковий runtime,
+але той самий ризик зберігається навіть у multi-threaded runtime (багатопотоковому середовищі
+виконання).\
+Різниця лише в кількості конкурентних tasks, потрібних для виникнення deadlock:
+в однопотоковому runtime достатньо двох, а в multi-threaded runtime
+знадобиться `N+1` tasks, де `N` — кількість потоків runtime (runtime threads).
 
-### Downsides
+### Недоліки
 
-Having an async-aware `Mutex` comes with a performance penalty.\
-If you're confident that the lock isn't under significant contention
-_and_ you're careful to never hold it across a yield point, you can
-still use `std::sync::Mutex` in an asynchronous context.
+`Mutex` з підтримкою async має свою ціну з погляду продуктивності.\
+Якщо ви впевнені, що за lock немає значної конкуренції,
+_і_ уважно стежите, щоб ніколи не утримувати його в yield point, то
+все ж можете використовувати `std::sync::Mutex` в асинхронному контексті.
 
-But weigh the performance benefit against the liveness risk you
-will incur.
+Але зіставте виграш у продуктивності з ризиком для liveness (живості),
+на який ви при цьому йдете.
 
-## Other primitives
+## Інші примітиви
 
-We used `Mutex` as an example, but the same applies to `RwLock`, semaphores, etc.\
-Prefer async-aware versions when working in an asynchronous context to minimise
-the risk of issues.
+Ми взяли за приклад `Mutex`, але те саме стосується `RwLock`, семафорів тощо.\
+В асинхронному контексті надавайте перевагу версіям із підтримкою async, щоб мінімізувати
+ризик проблем.

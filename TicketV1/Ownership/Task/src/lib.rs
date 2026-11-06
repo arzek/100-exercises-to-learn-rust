@@ -1,7 +1,7 @@
-// TODO: based on what we just learned about ownership, it sounds like immutable references
-//   are a good fit for our accessor methods.
-//   Change the existing implementation of `Ticket`'s accessor methods to take a reference
-//   to `self` as an argument, rather than taking ownership of it.
+// TODO: з огляду на те, що ми щойно дізналися про ownership, immutable references, схоже,
+//   чудово підходять для наших accessor methods.
+//   Змініть наявну реалізацію accessor methods `Ticket` так, щоб вони приймали як аргумент reference
+//   на `self`, а не брали ownership над ним.
 
 pub struct Ticket {
     title: String,

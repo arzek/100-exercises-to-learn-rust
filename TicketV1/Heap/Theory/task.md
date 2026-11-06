@@ -1,20 +1,20 @@
 ## Heap
 
-The stack is great, but it can't solve all our problems. What about data whose size is not known at compile time?
-Collections, strings, and other dynamically-sized data cannot be (entirely) stack-allocated.
-That's where the **heap** comes in.
+Stack чудовий, але він не розв'язує всіх наших проблем. Як бути з даними, розмір яких невідомий під час компіляції?
+Колекції, рядки та інші дані динамічного розміру не можна (повністю) розмістити в stack.
+Тут на допомогу приходить **heap**.
 
 ## Heap allocations
 
-You can visualize the heap as a big chunk of memory—a huge array, if you will.\
-Whenever you need to store data on the heap, you ask a special program, the **allocator**, to reserve for you
-a subset of the heap. We call this interaction (and the memory you reserved) a **heap allocation**.
-If the allocation succeeds, the allocator will give you a **pointer** to the start of the reserved block.
+Heap можна уявити як великий шматок пам'яті — такий собі величезний масив.\
+Щоразу, коли потрібно зберегти дані в heap, ви просите спеціальну програму — **allocator** — зарезервувати
+для вас частину heap. Таку взаємодію (і зарезервовану пам'ять) ми називаємо **heap allocation** (виділення пам'яті в купі).
+Якщо allocation пройде успішно, allocator поверне вам **pointer** на початок зарезервованого блоку.
 
-## No automatic de-allocation
+## Без автоматичного звільнення пам'яті
 
-The heap is structured quite differently from the stack.\
-Heap allocations are not contiguous, they can be located anywhere inside the heap.
+Heap влаштовано зовсім не так, як stack.\
+Виділені в heap блоки не обов'язково йдуть поспіль: вони можуть розташовуватися будь-де в heap.
 
 ```
 +---+---+---+---+---+---+-...-+-...-+---+---+---+---+---+---+---+
@@ -22,41 +22,41 @@ Heap allocations are not contiguous, they can be located anywhere inside the hea
 +---+---+---+---+---+---+ ... + ... +---+---+---+---+---+---+---+
 ```
 
-It's the allocator's job to keep track of which parts of the heap are in use and which are free.
-The allocator won't automatically free the memory you allocated, though: you need to be deliberate about it,
-calling the allocator again to **free** the memory you no longer need.
+Відстежувати, які частини heap зайняті, а які вільні, — робота allocator.
+Проте allocator не звільнятиме виділену вами пам'ять автоматично: про це треба подбати свідомо —
+знову звернутися до allocator, щоб **звільнити** пам'ять, яка вам більше не потрібна.
 
-## Performance
+## Продуктивність
 
-The heap's flexibility comes at a cost: heap allocations are **slower** than stack allocations.
-There's a lot more bookkeeping involved!\
-If you read articles about performance optimization you'll often be advised to minimize heap allocations
-and prefer stack-allocated data whenever possible.
+За гнучкість heap доводиться платити: heap allocations **повільніші** за stack allocations.
+Тут потрібно набагато більше службового обліку!\
+У статтях про оптимізацію продуктивності вам часто радитимуть мінімізувати кількість heap allocations
+і за можливості надавати перевагу даним у stack.
 
-## `String`'s memory layout
+## Розміщення `String` у пам'яті
 
-When you create a local variable of type `String`,
-Rust is forced to allocate on the heap: it doesn't know in advance how much text you're going to put in it,
-so it can't reserve the right amount of space on the stack.
+Коли ви створюєте локальну змінну типу `String`,
+Rust змушений виділити пам'ять у heap: він не знає наперед, скільки тексту ви туди покладете,
+тож не може зарезервувати в stack потрібний обсяг місця.
 
-> 💡 **Note**
+> 💡 **Примітка**
 >
-> `std` doesn't allocate if you create an **empty** `String` (i.e. `String::new()`).
-> Heap memory will be reserved when you push data into it for the first time.
+> `std` не виділяє пам'ять, якщо ви створюєте **порожній** `String` (тобто `String::new()`).
+> Пам'ять у heap буде зарезервовано, коли ви вперше додасте до нього дані.
 
-But a `String` is not _entirely_ heap-allocated, it also keeps some data on the stack. In particular:
+Але `String` розміщується в heap не _повністю_: частину даних він зберігає в stack. А саме:
 
-- The **pointer** to the heap region you reserved.
-- The **length** of the string, i.e. how many bytes are in the string.
-- The **capacity** of the string, i.e. how many bytes have been reserved on the heap.
+- **pointer** на зарезервовану вами ділянку heap;
+- **довжину** (length) рядка, тобто скільки байтів містить рядок;
+- **capacity** рядка, тобто скільки байтів зарезервовано в heap.
 
-Let's look at an example to understand this better:
+Щоб краще це зрозуміти, розгляньмо приклад:
 
 ```rust
 let mut s = String::with_capacity(5);
 ```
 
-If you run this code, memory will be laid out like this:
+Якщо виконати цей код, пам'ять матиме такий вигляд:
 
 ```
       +---------+--------+----------+
@@ -71,14 +71,14 @@ Heap:  | ? | ? | ? | ? | ? |
        +---+---+---+---+---+
 ```
 
-We asked for a `String` that can hold up to 5 bytes of text.\
-`String::with_capacity` goes to the allocator and asks for 5 bytes of heap memory. The allocator returns
-a pointer to the start of that memory block.\
-The `String` is empty, though. On the stack, we keep track of this information by distinguishing between
-the length and the capacity: this `String` can hold up to 5 bytes, but it currently holds 0 bytes of
-actual text.
+Ми попросили `String`, який може вмістити до 5 байтів тексту.\
+`String::with_capacity` звертається до allocator і просить 5 байтів пам'яті в heap. Allocator повертає
+pointer на початок цього блоку пам'яті.\
+Проте сам `String` порожній. У stack ми відстежуємо це, розрізняючи
+довжину та capacity: цей `String` може вмістити до 5 байтів, але зараз містить 0 байтів
+власне тексту.
 
-If you push some text into the `String`, the situation will change:
+Якщо додати до `String` трохи тексту, ситуація зміниться:
 
 ```rust
 s.push_str("Hey");
@@ -97,51 +97,51 @@ Heap:  | H | e | y | ? | ? |
        +---+---+---+---+---+
 ```
 
-`s` now holds 3 bytes of text. Its length is updated to 3, but capacity remains 5.
-Three of the five bytes on the heap are used to store the characters `H`, `e`, and `y`.
+Тепер `s` містить 3 байти тексту. Його довжина змінюється на 3, але capacity лишається 5.
+Три з п'яти байтів у heap зайнято символами `H`, `e` і `y`.
 
 ### `usize`
 
-How much space do we need to store pointer, length and capacity on the stack?\
-It depends on the **architecture** of the machine you're running on.
+Скільки місця потрібно, щоб зберегти pointer, довжину та capacity у stack?\
+Це залежить від **архітектури** машини, на якій ви працюєте.
 
-Every memory location on your machine has an [**address**](https://en.wikipedia.org/wiki/Memory_address), commonly
-represented as an unsigned integer.
-Depending on the maximum size of the address space (i.e. how much memory your machine can address),
-this integer can have a different size. Most modern machines use either a 32-bit or a 64-bit address space.
+Кожна комірка пам'яті вашої машини має [**адресу**](https://en.wikipedia.org/wiki/Memory_address), яку зазвичай
+подають як беззнакове ціле число.
+Залежно від максимального розміру адресного простору (тобто від того, скільки пам'яті може адресувати ваша машина)
+це ціле число може мати різний розмір. Більшість сучасних машин використовують 32-бітний або 64-бітний адресний простір.
 
-Rust abstracts away these architecture-specific details by providing the `usize` type:
-an unsigned integer that's as big as the number of bytes needed to address memory on your machine.
-On a 32-bit machine, `usize` is equivalent to `u32`. On a 64-bit machine, it matches `u64`.
+Rust приховує ці залежні від архітектури деталі за типом `usize` —
+беззнаковим цілим числом, розмір якого дорівнює кількості байтів, потрібних для адресації пам'яті на вашій машині.
+На 32-бітній машині `usize` еквівалентний `u32`. На 64-бітній він відповідає `u64`.
 
-Capacity, length and pointers are all represented as `usize`s in Rust.
+Capacity, довжина та pointers у Rust представлені значеннями типу `usize`.
 
-> 💡 **Note**
+> 💡 **Примітка**
 >
-> The size of a pointer depends on the operating system too.
-> In certain environments, a pointer is **larger** than a memory address (e.g. [CHERI](https://web.archive.org/web/20240517051950/https://blog.acolyer.org/2019/05/28/cheri-abi/)).
-> Rust makes the simplifying assumption that pointers are the same size as memory addresses,
-> which is true for most modern systems you're likely to encounter.
+> Розмір pointer залежить і від операційної системи.
+> У деяких середовищах pointer **більший** за адресу пам'яті (наприклад, [CHERI](https://web.archive.org/web/20240517051950/https://blog.acolyer.org/2019/05/28/cheri-abi/)).
+> Rust спрощено вважає, що pointers мають той самий розмір, що й адреси пам'яті;
+> це справджується для більшості сучасних систем, з якими ви, найімовірніше, матимете справу.
 
-### No `std::mem::size_of` for the heap
+### Немає `std::mem::size_of` для heap
 
-`std::mem::size_of` returns the amount of space a type would take on the stack,
-which is also known as the **size of the type**.
+`std::mem::size_of` повертає обсяг місця, який тип займав би в stack;
+цей обсяг також називають **розміром типу**.
 
-> What about the memory buffer that `String` is managing on the heap? Isn't that
-> part of the size of `String`?
+> А як щодо буфера пам'яті, яким `String` керує в heap? Хіба він не
+> входить до розміру `String`?
 
-No!\
-That heap allocation is a **resource** that `String` is managing.
-It's not considered to be part of the `String` type by the compiler.
+Ні!\
+Ця heap allocation — **ресурс**, яким керує `String`.
+Компілятор не вважає її частиною типу `String`.
 
-`std::mem::size_of` doesn't know (or care) about additional heap-allocated data
-that a type might manage or refer to via pointers, as is the case with `String`,
-therefore it doesn't track its size.
+`std::mem::size_of` нічого не знає (і не хоче знати) про додаткові дані в heap,
+якими тип може керувати або на які може посилатися через pointers, як у випадку зі `String`,
+тому не враховує їхній розмір.
 
-Unfortunately there is no equivalent of `std::mem::size_of` to measure the amount of
-heap memory that a certain value is allocating at runtime. Some types might
-provide methods to inspect their heap usage (e.g. `String`'s `capacity` method),
-but there is no general-purpose "API" to retrieve runtime heap usage in Rust.\
-You can, however, use a memory profiler tool (e.g. [DHAT](https://valgrind.org/docs/manual/dh-manual.html)
-or [a custom allocator](https://docs.rs/dhat/latest/dhat/)) to inspect the heap usage of your program.
+На жаль, немає відповідника `std::mem::size_of`, який вимірював би, скільки
+пам'яті в heap певне значення виділяє під час виконання програми. Деякі типи можуть
+надавати методи для перевірки використання heap (наприклад, метод `capacity` у `String`),
+але універсального «API» для отримання даних про використання heap під час виконання в Rust немає.\
+Утім, щоб дослідити, як ваша програма використовує heap, можна скористатися профайлером пам'яті (наприклад, [DHAT](https://valgrind.org/docs/manual/dh-manual.html)
+або [власним allocator](https://docs.rs/dhat/latest/dhat/)).

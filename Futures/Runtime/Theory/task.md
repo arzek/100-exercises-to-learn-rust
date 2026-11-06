@@ -1,48 +1,48 @@
-## Runtime architecture
+## Архітектура runtime
 
-So far we've been talking about async runtimes as an abstract concept.
-Let's dig a bit deeper into the way they are implemented—as you'll see soon enough,
-it has an impact on our code.
+Досі ми говорили про async runtimes (середовища, які виконують асинхронний код) як про абстрактне поняття.
+Розгляньмо трохи глибше, як їх реалізовано, — як ви скоро побачите,
+це впливає на наш код.
 
 ## Flavors
 
-`tokio` ships two different runtime _flavors_.
+`tokio` пропонує два різні _flavors_ (різновиди) runtime.
 
-You can configure your runtime via `tokio::runtime::Builder`:
+Налаштувати runtime можна через `tokio::runtime::Builder`:
 
-- `Builder::new_multi_thread` gives you a **multithreaded `tokio` runtime**
-- `Builder::new_current_thread` will instead rely on the **current thread** for execution.
+- `Builder::new_multi_thread` створює **multi-threaded runtime `tokio`** (багатопотокове середовище виконання);
+- `Builder::new_current_thread` натомість використовує для виконання **поточний потік** (current thread).
 
-`#[tokio::main]` returns a multithreaded runtime by default, while
-`#[tokio::test]` uses a current thread runtime out of the box.
+`#[tokio::main]` за замовчуванням повертає multi-threaded runtime, тоді як
+`#[tokio::test]` без додаткових налаштувань використовує current-thread runtime (середовище виконання поточного потоку).
 
-### Current thread runtime
+### Current-thread runtime
 
-The current-thread runtime, as the name implies, relies exclusively on the OS thread
-it was launched on to schedule and execute tasks.\
-When using the current-thread runtime, you have **concurrency** but no **parallelism**:
-asynchronous tasks will be interleaved, but there will always be at most one task running
-at any given time.
+Current-thread runtime, як випливає з назви, планує та виконує tasks
+виключно в тому потоці ОС, у якому його запущено.\
+У такому runtime у вас є **конкурентність**, але немає **паралелізму**:
+асинхронні tasks чергуватимуться, але в будь-який момент часу виконуватиметься
+щонайбільше один task.
 
-### Multithreaded runtime
+### Multi-threaded runtime
 
-When using the multithreaded runtime, instead, there can be up to `N` tasks running
-_in parallel_ at any given time, where `N` is the number of threads used by the
-runtime. By default, `N` matches the number of available CPU cores.
+Натомість у multi-threaded runtime в будь-який момент часу може
+виконуватися до `N` tasks _паралельно_, де `N` — кількість потоків, які використовує
+runtime. За замовчуванням `N` дорівнює кількості доступних ядер процесора.
 
-There's more: `tokio` performs **work-stealing**.\
-If a thread is idle, it won't wait around: it'll try to find a new task that's ready for
-execution, either from a global queue or by stealing it from the local queue of another
-thread.\
-Work-stealing can have significant performance benefits, especially on tail latencies,
-whenever your application is dealing with workloads that are not perfectly balanced
-across threads.
+І це ще не все: `tokio` використовує **work-stealing** (викрадання роботи).\
+Якщо потік простоює, він не чекає склавши руки: він спробує знайти новий task, готовий
+до виконання, — або в глобальній черзі, або «викравши» його з локальної черги іншого
+потоку.\
+Work-stealing може дати суттєвий виграш у продуктивності, особливо щодо tail latencies (хвостових затримок),
+коли ваш застосунок має справу з навантаженням, яке неідеально збалансоване
+між потоками.
 
-## Implications
+## Наслідки
 
-`tokio::spawn` is flavor-agnostic: it'll work no matter if you're running on the multithreaded
-or current-thread runtime. The downside is that the signature assumes the worst case
-(i.e. multithreaded) and is constrained accordingly:
+`tokio::spawn` не прив'язана до конкретного flavor: вона працюватиме незалежно від того, чи використовуєте ви multi-threaded runtime,
+чи current-thread runtime. Недолік у тому, що її сигнатура розрахована на найгірший випадок
+(тобто multi-threaded runtime) і має відповідні обмеження:
 
 ```rust
 pub fn spawn<F>(future: F) -> JoinHandle<F::Output>
@@ -52,19 +52,19 @@ where
 { /* */ }
 ```
 
-Let's ignore the `Future` trait for now to focus on the rest.\
-`spawn` is asking all its inputs to be `Send` and have a `'static` lifetime.
+Поки що не зважатимемо на trait `Future` (trait: набір методів, які тип може реалізувати; аналог інтерфейсу) і зосередимося на решті.\
+`spawn` вимагає, щоб усі її вхідні дані були `Send` і мали `'static` lifetime (lifetime: час життя посилання).
 
-The `'static` constraint follows the same rationale of the `'static` constraint
-on `std::thread::spawn`: the spawned task may outlive the context it was spawned
-from, therefore it shouldn't depend on any local data that may be de-allocated
-after the spawning context is destroyed.
+Обмеження `'static` має те саме обґрунтування, що й обмеження `'static`
+для `std::thread::spawn`: запущений task може пережити контекст, з якого його
+запустили (spawn), тому він не повинен залежати від жодних локальних даних, пам'ять яких
+може бути звільнено після знищення контексту, що його запустив.
 
 ```rust
 fn spawner() {
     let v = vec![1, 2, 3];
-    // This won't work, since `&v` doesn't
-    // live long enough.
+    // Це не спрацює, бо `&v` живе
+    // недостатньо довго.
     tokio::spawn(async { 
         for x in &v {
             println!("{x}")
@@ -73,14 +73,14 @@ fn spawner() {
 }
 ```
 
-`Send`, on the other hand, is a direct consequence of `tokio`'s work-stealing strategy:
-a task that was spawned on thread `A` may end up being moved to thread `B` if that's idle,
-thus requiring a `Send` bound since we're crossing thread boundaries.
+`Send`, своєю чергою, — прямий наслідок стратегії work-stealing у `tokio`:
+task, запущений у потоці `A`, може бути переміщено в потік `B`, якщо той простоює,
+тому потрібен trait bound `Send` (trait bound: вимога, щоб тип реалізовував певний trait) — адже ми перетинаємо межі потоків.
 
 ```rust
 fn spawner(input: Rc<u64>) {
-    // This won't work either, because
-    // `Rc` isn't `Send`.
+    // Це теж не спрацює, бо
+    // `Rc` не є `Send`.
     tokio::spawn(async move {
         println!("{}", input);
     })

@@ -1,6 +1,6 @@
 ## Slices
 
-Let's go back to the memory layout of a `Vec`:
+Повернімося до того, як `Vec` розміщується в пам'яті:
 
 ```rust
 let mut numbers = Vec::with_capacity(3);
@@ -21,55 +21,56 @@ Heap:  | 1 | 2 | ? |
        +---+---+---+
 ```
 
-We already remarked how `String` is just a `Vec<u8>` in disguise.\
-The similarity should prompt you to ask: "What's the equivalent of `&str` for `Vec`?"
+Ми вже зазначали, що `String` — це просто замаскований `Vec<u8>`.\
+Ця схожість має підштовхнути вас до запитання: «А що для `Vec` є відповідником `&str`?»
 
 ## `&[T]`
 
-`[T]` is a **slice** of a contiguous sequence of elements of type `T`.\
-It's most commonly used in its borrowed form, `&[T]`.
+`[T]` — це **slice** (зріз) неперервної послідовності елементів типу `T`.\
+Найчастіше його використовують у формі borrow (запозичення) — `&[T]`.
 
-There are various ways to create a slice reference from a `Vec`:
+Створити reference на slice із `Vec` можна кількома способами:
 
 ```rust
 let numbers = vec![1, 2, 3];
-// Via index syntax
+// Через синтаксис індексування
 let slice: &[i32] = &numbers[..];
-// Via a method
+// Через метод
 let slice: &[i32] = numbers.as_slice();
-// Or for a subset of the elements
+// Або лише для частини елементів
 let slice: &[i32] = &numbers[1..];
 ```
 
-`Vec` implements the `Deref` trait using `[T]` as the target type, so you can use slice methods on a `Vec` directly
-thanks to deref coercion:
+`Vec` реалізує trait `Deref` (trait — набір методів, які тип може реалізувати; аналог інтерфейсу) із цільовим типом `[T]`,
+тож завдяки deref coercion (автоматичному розіменуванню до потрібного типу) методи slices можна викликати
+безпосередньо на `Vec`:
 
 ```rust
 let numbers = vec![1, 2, 3];
-// Surprise, surprise: `iter` is not a method on `Vec`!
-// It's a method on `&[T]`, but you can call it on a `Vec` 
-// thanks to deref coercion.
+// Яка несподіванка: `iter` — це не метод `Vec`!
+// Це метод `&[T]`, але його можна викликати на `Vec`
+// завдяки deref coercion.
 let sum: i32 = numbers.iter().sum();
 ```
 
-### Memory layout
+### Розміщення в пам'яті
 
-A `&[T]` is a **fat pointer**, just like `&str`.\
-It consists of a pointer to the first element of the slice and the length of the slice.
+`&[T]` — це **fat pointer** («товстий» вказівник), як і `&str`.\
+Він складається з pointer на перший елемент slice та довжини slice.
 
-If you have a `Vec` with three elements:
+Якщо у вас є `Vec` із трьома елементами:
 
 ```rust
 let numbers = vec![1, 2, 3];
 ```
 
-and then create a slice reference:
+і ви створите reference на slice:
 
 ```rust
 let slice: &[i32] = &numbers[1..];
 ```
 
-you'll get this memory layout:
+то отримаєте ось таке розміщення в пам'яті:
 
 ```text
                   numbers                          slice
@@ -88,19 +89,19 @@ Heap:    | 1 | 2 | 3 | ? |                      |
                +--------------------------------+
 ```
 
-### `&Vec<T>` vs `&[T]`
+### `&Vec<T>` проти `&[T]`
 
-When you need to pass an immutable reference to a `Vec` to a function, prefer `&[T]` over `&Vec<T>`.\
-This allows the function to accept any kind of slice, not necessarily one backed by a `Vec`.
+Коли потрібно передати у функцію immutable reference на `Vec`, віддавайте перевагу `&[T]`, а не `&Vec<T>`.\
+Тоді функція зможе приймати будь-який slice, не обов'язково той, за яким стоїть `Vec`.
 
-For example, you can then pass a subset of the elements in a `Vec`.
-But it goes further than that—you could also pass a **slice of an array**:
+Наприклад, так можна передати лише частину елементів `Vec`.
+Але можливості цим не обмежуються — можна передати й **slice масиву**:
 
 ```rust
 let array = [1, 2, 3];
 let slice: &[i32] = &array;
 ```
 
-Array slices and `Vec` slices are the same type: they're fat pointers to a contiguous sequence of elements.
-In the case of arrays, the pointer points to the stack rather than the heap, but that doesn't matter
-when it comes to using the slice.
+Slices масивів і slices `Vec` мають один і той самий тип: це fat pointers на неперервну послідовність елементів.
+У випадку масивів pointer указує на stack, а не на heap, але для роботи зі slice
+це не має значення.

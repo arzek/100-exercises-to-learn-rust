@@ -1,5 +1,5 @@
-// TODO: based on what you learned in Stack lesson, replace `TODO` with
-//  the correct **stack size** for the respective type.
+// TODO: спираючись на вивчене в уроці «Stack», замініть `TODO`
+//  правильним **розміром у stack** для відповідного типу.
 #[cfg(test)]
 mod tests {
     use std::mem::size_of;

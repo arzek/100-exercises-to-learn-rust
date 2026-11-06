@@ -1,19 +1,19 @@
-One of Rust's big promises is _fearless concurrency_: making it easier to write safe, concurrent programs.
-We haven't seen much of that yet. All the work we've done so far has been single-threaded.
-Time to change that!
+Одна з великих обіцянок Rust — _fearless concurrency_ (безстрашна конкурентність): з нею простіше писати безпечні конкурентні програми.
+Досі ми бачили з цього небагато. Уся робота, яку ми виконували до цього моменту, була однопотоковою.
+Час це змінити!
 
-In this chapter we'll make our ticket store multithreaded.\
-We'll have the opportunity to touch most of Rust's core concurrency features, including:
+У цьому розділі ми зробимо наше сховище тікетів багатопотоковим.\
+Ми матимемо змогу спробувати більшість ключових можливостей Rust для конкурентного програмування, зокрема:
 
-- Threads, using the `std::thread` module
-- Message passing, using channels
-- Shared state, using `Arc`, `Mutex` and `RwLock`
-- `Send` and `Sync`, the traits that encode Rust's concurrency guarantees
+- потоки (threads) — за допомогою модуля `std::thread`;
+- обмін повідомленнями — за допомогою каналів (channels);
+- спільний стан — за допомогою `Arc`, `Mutex` і `RwLock`;
+- `Send` і `Sync` — traits (trait: набір методів, які тип може реалізувати; аналог інтерфейсу), через які Rust виражає свої гарантії щодо конкурентності.
 
-We'll also discuss various design patterns for multithreaded systems and some of their trade-offs.
+Також ми обговоримо різні design patterns (шаблони проєктування) для багатопотокових систем і деякі пов'язані з ними компроміси.
 
 <br/>
 
-## Task
-Introduction task is to complete the `intro` function.
-The function should return the string: ***I'm ready to build a concurrent ticket management system!***
+## Завдання
+У цьому вступному завданні потрібно доповнити функцію `intro`.
+Функція має повернути рядок: ***I'm ready to build a concurrent ticket management system!*** (Рядок лишаємо англійською — саме його перевіряє тест.)

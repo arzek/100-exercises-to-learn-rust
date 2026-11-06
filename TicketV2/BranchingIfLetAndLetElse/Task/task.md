@@ -1,2 +1,2 @@
-This task is to implement the `radius` method for the `Shape` `enum`. 
-As guided by the `TODO` comment in the code.
+У цьому завданні потрібно реалізувати метод `radius` для `enum` `Shape`.
+Виконайте вказівки з коментаря `TODO` у коді.

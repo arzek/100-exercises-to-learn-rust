@@ -1,4 +1,4 @@
-// TODO: Flesh out the `WeekTemperatures` struct and its method implementations to pass the tests.
+// TODO: Доповніть struct `WeekTemperatures` і реалізації її методів, щоб тести проходили.
 
 pub struct WeekTemperatures {
     temperatures: [Option<i32>; 7],

@@ -1,2 +1,2 @@
-In this task you need to determine the stack size (in bytes) of different types of references. 
-Refer to the `TODO` comment in the code to identify which specific reference types you need to evaluate and replace the `TODO` placeholders with their correct sizes.
+У цьому завданні потрібно визначити розмір у stack для різних типів references.
+З коментаря `TODO` у коді дізнайтеся, які саме типи references треба розглянути, і замініть placeholders `TODO` їхніми правильними розмірами.

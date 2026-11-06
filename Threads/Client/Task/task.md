@@ -1,4 +1,4 @@
-This task is to implement the `TicketStoreClient` struct and its `insert` and `get` methods. 
-Also, complete the `launch` function.
+У цьому завданні потрібно реалізувати struct `TicketStoreClient` (struct: структура) та його методи `insert` і `get`.
+Також допишіть функцію `launch`.
 
-Follow the `TODO` comments in the code.
+Виконайте вказівки з коментарів `TODO` у коді.

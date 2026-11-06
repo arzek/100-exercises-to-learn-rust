@@ -1,2 +1,2 @@
-This task is to re-implement the `Ticket` struct's accessor methods (`title`, `description`, `status`). 
-As guided by the `TODO` comment in the code.
+У цьому завданні потрібно заново реалізувати accessor methods (методи доступу) `title`, `description` і `status` для struct `Ticket` (struct: структура),
+як підказує коментар `TODO` у коді.

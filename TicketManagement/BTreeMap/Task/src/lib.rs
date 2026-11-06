@@ -1,7 +1,7 @@
-// TODO: Replace `todo!()`s with the correct implementation.
-//  Implement `IntoIterator` for `&TicketStore`. The iterator should yield immutable
-//  references to the tickets, ordered by their `TicketId`.
-//  Implement additional traits on `TicketId` if needed.
+// TODO: Замініть усі `todo!()` правильною реалізацією.
+//  Реалізуйте `IntoIterator` для `&TicketStore`. Ітератор має видавати immutable
+//  references (незмінювані посилання) на тікети, упорядковані за їхнім `TicketId`.
+//  За потреби реалізуйте додаткові traits для `TicketId`.
 
 use std::collections::BTreeMap;
 use std::ops::{Index, IndexMut};
